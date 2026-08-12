@@ -1,0 +1,48 @@
+# ══════════════════════════════════════════════════════
+#  render.yaml — Render Blueprint (GitHub → Render 자동 배포)
+#
+#  적용 방법
+#   1. 이 파일을 저장소 루트에 두고 push
+#   2. Render 대시보드 → Blueprints → New Blueprint Instance → 이 리포 선택
+#      (이미 만들어 둔 Static Site 가 있다면 Settings 에서 값만 맞춰도 됩니다)
+#   3. VITE_CESIUM_TOKEN 값을 대시보드에서 입력 (sync:false 라 파일에 남지 않음)
+#
+#  ★ 프런트엔드가 저장소 루트에 있고 frontend/ 폴더가 없다면
+#    rootDir 줄을 지우고 staticPublishPath 를 ./dist 로 두세요.
+# ══════════════════════════════════════════════════════
+services:
+  - type: web
+    name: philippines-pumped-storage
+    runtime: static
+    rootDir: frontend
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    autoDeploy: true
+
+    envVars:
+      # Vite 7 / Cesium 1.117 조합은 Node 20 이상에서 안정적입니다.
+      - key: NODE_VERSION
+        value: "20.11.1"
+      # 값은 Render 대시보드에서 입력 (저장소에 남기지 않음)
+      - key: VITE_CESIUM_TOKEN
+        sync: false
+
+    # SPA — 새로고침·딥링크가 404 나지 않도록
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    headers:
+      # Cesium 은 .js/.wasm 워커를 씁니다. 캐시는 해시 붙은 에셋에만 길게.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /cesium/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache

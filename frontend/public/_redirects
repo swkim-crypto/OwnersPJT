@@ -1,0 +1,4 @@
+# Render Static Site SPA 폴백.
+# render.yaml 의 routes 와 중복되지만, Blueprint 없이 대시보드로만
+# 만든 사이트에서는 이 파일이 유일한 폴백 수단입니다. 둘 다 두는 게 안전합니다.
+/*  /index.html  200

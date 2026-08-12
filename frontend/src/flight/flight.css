@@ -1,0 +1,125 @@
+/* ══════════════════════════════════════════════════════
+   flight.css — 비행 컨트롤 · 종단 차트 · 인덱스맵
+   세방히앙 팔레트 유지 (다크 시안/앰버 콘솔)
+   ══════════════════════════════════════════════════════ */
+
+.fb-root {
+  --fb-bg:    #07101b;
+  --fb-panel: #0b1928;
+  --fb-panel2:#0e2033;
+  --fb-edge:  #1b3a54;
+  --fb-cyan:  #3fe3df;
+  --fb-cyanD: #2a8f98;
+  --fb-amber: #f0a500;
+  --fb-tx:    #cfe6ee;
+  --fb-txD:   #6f92a5;
+  --fb-white: #eef7fa;
+
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: var(--fb-bg);
+  border-top: 1px solid var(--fb-edge);
+  font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--fb-tx);
+  z-index: 20;
+}
+
+.fb-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--fb-edge);
+}
+
+.fb-grp {
+  display: flex; align-items: center; gap: 3px;
+  padding-left: 8px;
+  border-left: 1px solid var(--fb-edge);
+}
+
+.fb-lbl {
+  font-size: 10px; letter-spacing: .08em;
+  color: var(--fb-txD);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  white-space: nowrap;
+}
+.fb-lbl.cyan { color: var(--fb-cyan); min-width: 46px; }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+.fb-btn {
+  background: var(--fb-panel2);
+  border: 1px solid var(--fb-edge);
+  color: var(--fb-tx);
+  border-radius: 4px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .13s, color .13s, background .13s;
+}
+.fb-btn:hover:not(:disabled) { border-color: var(--fb-cyanD); }
+.fb-btn:focus-visible { outline: 2px solid var(--fb-cyan); outline-offset: 1px; }
+.fb-btn.sm { padding: 4px 7px; font-size: 10.5px; }
+.fb-btn.on {
+  border-color: var(--fb-cyan);
+  color: var(--fb-cyan);
+  box-shadow: inset 0 0 0 1px var(--fb-cyan);
+}
+.fb-btn.primary { min-width: 78px; font-weight: 600; }
+.fb-btn:disabled { opacity: .35; cursor: default; }
+
+.fb-range { width: 108px; accent-color: var(--fb-cyan); }
+
+/* 댐 점프 버튼 */
+.fb-dams { flex-wrap: wrap; }
+.fb-dam {
+  background: var(--fb-panel2);
+  border: 1px solid var(--fb-edge);
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  cursor: pointer;
+  transition: border-color .13s, color .13s;
+}
+.fb-dam.dn { color: var(--fb-amber); }
+.fb-dam.up { color: #00e5ff; }
+.fb-dam:hover  { border-color: currentColor; }
+.fb-dam:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.fb-dam.on { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
+
+.fb-readout {
+  margin-left: auto;
+  font-size: 12px; color: var(--fb-txD);
+  white-space: nowrap;
+}
+.fb-readout b { color: var(--fb-white); font-weight: 600; }
+
+/* 종단 차트 */
+.fb-profile { height: 150px; position: relative; }
+.rp-canvas  { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+/* 인덱스맵 */
+.im-wrap {
+  border-top: 1px solid var(--fb-edge, #1b3a54);
+  padding: 6px 10px 8px;
+  flex: 0 0 auto;
+}
+.im-title {
+  font-size: 10px; letter-spacing: .16em;
+  color: #6f92a5;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  margin-bottom: 4px;
+}
+.im-box    { height: 160px; position: relative; }
+.im-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+@media (max-width: 1100px) {
+  .fb-profile { height: 110px; }
+  .fb-controls { gap: 6px; padding: 6px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fb-btn, .fb-dam { transition: none; }
+}

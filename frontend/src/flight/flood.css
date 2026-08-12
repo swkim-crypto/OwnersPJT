@@ -1,0 +1,78 @@
+/* ══════════════════════════════════════════════════════
+   flood.css — 2단계 담수 컨트롤
+   flight.css 의 변수(--fb-*)를 그대로 상속합니다. .fb-root 안에서만 씁니다.
+   ══════════════════════════════════════════════════════ */
+
+.fd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--fb-edge);
+  background: var(--fb-panel);
+}
+
+/* 수위 게이지 */
+.fd-gauge {
+  position: relative;
+  width: 168px;
+  height: 20px;
+  border: 1px solid var(--fb-edge);
+  border-radius: 4px;
+  background: var(--fb-panel2);
+  overflow: hidden;
+  flex: none;
+}
+.fd-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #1f7fd0 0%, #3fe3df 100%);
+  opacity: .45;
+  transition: width .12s linear;
+}
+.fd-gauge-tx {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  letter-spacing: .02em;
+  color: var(--fb-white);
+  text-shadow: 0 0 4px rgba(0, 0, 0, .8);
+}
+
+/* 제원 readout */
+.fd-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--fb-tx);
+  padding-left: 8px;
+  border-left: 1px solid var(--fb-edge);
+}
+.fd-stats b { color: var(--fb-cyan); font-weight: 600; }
+.fd-dim { color: var(--fb-txD); }
+
+.fd-live {
+  margin-left: auto;
+  color: var(--fb-amber);
+  font-size: 11px;
+  animation: fd-blink 1.1s steps(1) infinite;
+}
+@keyframes fd-blink { 50% { opacity: .25; } }
+
+@media (max-width: 900px) {
+  .fd-gauge { width: 120px; }
+  .fd-stats { font-size: 10px; gap: 7px; }
+}
+
+/* 담수 중인 댐 버튼 (flight.css 의 .fb-dam 에 덧입힘) */
+.fb-dam.filling {
+  border-color: var(--fb-amber);
+  color: var(--fb-amber);
+  animation: fd-blink 1.1s steps(1) infinite;
+}
