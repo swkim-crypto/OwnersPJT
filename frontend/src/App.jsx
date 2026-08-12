@@ -70,6 +70,10 @@ export default function App() {
     elevBoost: 2.0,    // 상부댐은 낙차 × 2 만큼 더 높이 — 규모 차이가 보이도록
     upperScale: 1.5,   // 상부댐만 한 번 더 1.5배 — "고지대로 퍼올린다"는 느낌
     fillSeconds: 5,
+    // 상부댐 선택 시 짝 하부댐은 처음부터 만수위로 두고 상부만 채웁니다.
+    //  CBC1-하부는 상부 2개가 공유해서, 순차로 두면 같은 하부가 차오르는
+    //  장면을 세 번 보게 됩니다. 'sequential' | 'simultaneous' 로 변경 가능.
+    pairMode: 'prefilled',
     flyDuration: null,
   })
 
