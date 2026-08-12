@@ -4,19 +4,21 @@
 //
 //  표시값은 전부 floodPolygons.js (IfSAR 5 m) 값 그대로.
 //  브라우저에서 지형을 다시 샘플링해 계산하지 않습니다.
+//
+//  ★ 댐고 조절은 우측 DetailPanel 이 담당합니다. 여기 있던 슬라이더는
+//    같은 값을 두 곳에서 만지는 중복이었고, 이 행을 한 줄에 담기 위해
+//    제거했습니다. 대신 snapHeight 로 스냅된 '실제 적용 댐고'를 표시합니다.
+//    (예: CBC3-하부는 H=20·30 데이터가 없어 30 을 골라도 40 으로 스냅됩니다)
 // ══════════════════════════════════════════════════════
 import React from 'react'
 import { FILL_SPEEDS } from '../flight/useFlood.js'
-import { FLOOD_POLYGONS } from '../data/floodPolygons.js'
 import '../flight/flood.css'
 
 const fmt = (v, d = 2) => (v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(d))
 
-export default function FloodBar({ flood, heightM, onHeightChange }) {
+export default function FloodBar({ flood, heightM }) {
   if (!flood) return null
   const { ui, toggle, drain, setFull, setSpeed, reframe } = flood
-  const rec = ui.damId ? FLOOD_POLYGONS[ui.damId] : null
-  const heights = rec?.heights ?? []
   const active = !!ui.damId
   const running = ui.phase === 'filling' || ui.phase === 'draining'
 
@@ -40,22 +42,14 @@ export default function FloodBar({ flood, heightM, onHeightChange }) {
         ))}
       </div>
 
+      {/* 읽기 전용 — 조절은 우측 패널. ui.H 는 스냅 후 실제 적용된 값 */}
       <div className="fb-grp">
         <span className="fb-lbl">댐고</span>
-        <input type="range" className="fb-range"
-               min={heights[0] ?? 20}
-               max={heights[heights.length - 1] ?? 150}
-               step={10}
-               value={heightM}
-               disabled={!active}
-               onChange={e => onHeightChange?.(+e.target.value)} />
         <span className="fb-lbl mono cyan">{ui.H || heightM} m</span>
       </div>
 
       <button className="fb-btn sm" onClick={() => reframe(true)} disabled={!active}
-              title="현재 창 크기에 맞춰 수몰면이 화면 1/3 이 되도록 다시 잡습니다">
-        ⤢ 재프레이밍
-      </button>
+              title="현재 창 크기에 맞춰 수몰면이 목표 점유율이 되도록 다시 잡습니다">⤢</button>
 
       {/* 수위 게이지 */}
       <div className="fd-gauge"

@@ -25,17 +25,23 @@
   z-index: 20;
 }
 
+/* 한 줄 고정. wrap 이면 폭이 좁을 때 2줄로 접히면서 EL readout 이
+   아래로 떨어지고, 그만큼 .fb-root 가 높아져 Cesium 캔버스를 더 가립니다.
+   넘칠 때는 줄바꿈 대신 가로 스크롤로 흘립니다. */
 .fb-controls {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px;
-  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   border-bottom: 1px solid var(--fb-edge);
 }
+.fb-controls::-webkit-scrollbar { height: 0; }
 
 .fb-grp {
   display: flex; align-items: center; gap: 3px;
-  padding-left: 8px;
+  padding-left: 6px;
   border-left: 1px solid var(--fb-edge);
+  flex: none;                 /* 줄어들어 뭉개지지 않게 */
 }
 
 .fb-lbl {
@@ -61,7 +67,7 @@
 }
 .fb-btn:hover:not(:disabled) { border-color: var(--fb-cyanD); }
 .fb-btn:focus-visible { outline: 2px solid var(--fb-cyan); outline-offset: 1px; }
-.fb-btn.sm { padding: 4px 7px; font-size: 10.5px; }
+.fb-btn.sm { padding: 4px 6px; font-size: 10.5px; }
 .fb-btn.on {
   border-color: var(--fb-cyan);
   color: var(--fb-cyan);
@@ -70,10 +76,10 @@
 .fb-btn.primary { min-width: 78px; font-weight: 600; }
 .fb-btn:disabled { opacity: .35; cursor: default; }
 
-.fb-range { width: 108px; accent-color: var(--fb-cyan); }
+.fb-range { width: 88px; accent-color: var(--fb-cyan); }
 
 /* 댐 점프 버튼 */
-.fb-dams { flex-wrap: wrap; }
+.fb-dams { flex-wrap: nowrap; }
 .fb-dam {
   background: var(--fb-panel2);
   border: 1px solid var(--fb-edge);
@@ -90,8 +96,13 @@
 .fb-dam:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .fb-dam.on { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
 
+/* sticky — 가로 스크롤이 생겨도 측점·EL 은 오른쪽에 붙어 남습니다 */
 .fb-readout {
   margin-left: auto;
+  padding-left: 8px;
+  flex: none;
+  position: sticky; right: 0;
+  background: var(--fb-bg);
   font-size: 12px; color: var(--fb-txD);
   white-space: nowrap;
 }
@@ -118,7 +129,8 @@
 
 @media (max-width: 1100px) {
   .fb-profile { height: 110px; }
-  .fb-controls { gap: 6px; padding: 6px 8px; }
+  .fb-controls { gap: 5px; padding: 5px 8px; }
+  .fb-range { width: 72px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fb-btn, .fb-dam { transition: none; }

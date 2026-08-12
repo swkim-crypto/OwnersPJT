@@ -13,7 +13,7 @@ function getDamType(c) {
 }
 
 export default function Sidebar({
-  candidates, selected, onSelect, mobile, showFlood, onToggleFlood,
+  candidates, selected, onSelect, mobile,
   river, tributaries = [], dams = [], fl, onSeek,   // ← 1단계 인덱스맵
 }) {
   const items      = (candidates ?? []).filter(c => REGION_ORDER.some(r => c.region === r))
@@ -26,7 +26,7 @@ export default function Sidebar({
     const isUp  = getDamType(c) === 'upper'
     return (
       <div key={c.id} onClick={() => onSelect(c)} style={{
-        padding: mobile ? '13px 14px' : '10px 16px', cursor: 'pointer',
+        padding: mobile ? '13px 14px' : '9px 12px', cursor: 'pointer',
         background: isSel ? 'var(--bg-hover)' : 'transparent',
         borderLeft: isSel ? `3px solid ${cfg.color}` : '3px solid transparent',
         transition: 'background 0.15s', display: 'flex', flexDirection: 'column', gap: 4,
@@ -39,8 +39,14 @@ export default function Sidebar({
             {c.priority}</span>
         </div>
         <div style={{ fontSize: mobile ? 12 : 11, color: 'var(--text-pri)', fontFamily: 'var(--font-mono)', opacity: 0.75 }}>
-          {c.bed != null ? `Bed ${c.bed}m · ` : ''}V {c.baseV ?? 0} Mm³{isUp && c.drop ? ` · 낙차 ${c.drop}m` : ''}
+          {c.bed != null ? `Bed ${c.bed}m · ` : ''}V {c.baseV ?? 0} Mm³
         </div>
+        {/* 낙차는 아랫줄로 — 한 줄에 이어 붙이면 패널 최소폭이 그만큼 늘어납니다 */}
+        {isUp && c.drop != null && (
+          <div style={{ fontSize: mobile ? 12 : 11, color: '#f0a500', fontFamily: 'var(--font-mono)' }}>
+            낙차 {c.drop} m
+          </div>
+        )}
         {c.hMin5 != null && (
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
             color: c.hMin5 <= 60 ? '#1D9E75' : c.hMin5 <= 90 ? '#BA7517' : '#E05C5C' }}>
@@ -52,32 +58,22 @@ export default function Sidebar({
   }
 
   return (
-    <div style={{ width: mobile ? '100%' : 252, background: 'var(--bg-panel)',
+    <div style={{ width: mobile ? '100%' : 202, background: 'var(--bg-panel)',
       borderRight: mobile ? 'none' : '1px solid var(--border)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0, height: '100%' }}>
 
+      {/* [수몰] 버튼 제거 — 백엔드 flood_geojson 을 그리던 토글이라 백엔드 중지
+          상태에서는 동작하지 않았고, 2단계 담수(floodPolygons.js)와도 무관합니다. */}
       {!mobile && (
-        <div style={{ padding: '12px 18px 10px', borderBottom: '1px solid var(--border)',
-          flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-sec)',
-              letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>{ANALYSIS_INFO.basin.id}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-pri)', fontFamily: 'var(--font-mono)' }}>
-              댐 후보지 분석 시스템</div>
-          </div>
-          <button onClick={onToggleFlood} style={{
-            marginTop: 2, padding: '8px 16px', fontSize: 14, fontWeight: 800,
-            fontFamily: 'var(--font-mono)', letterSpacing: '0.03em',
-            background: showFlood ? '#1a6fff' : 'rgba(255,255,255,0.06)',
-            color: showFlood ? '#ffffff' : 'var(--text-pri)',
-            border: `2px solid ${showFlood ? '#55aaff' : 'rgba(255,255,255,0.22)'}`,
-            borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap',
-            boxShadow: showFlood ? '0 0 10px rgba(26,111,255,0.5)' : 'none',
-            transition: 'all 0.15s' }}>💧 수몰</button>
+        <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-sec)',
+            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>{ANALYSIS_INFO.basin.id}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-pri)', fontFamily: 'var(--font-mono)' }}>
+            댐 후보지 분석 시스템</div>
         </div>
       )}
 
-      <div style={{ padding: mobile ? '8px 12px' : '8px 14px 10px',
+      <div style={{ padding: mobile ? '8px 10px' : '8px 12px 10px',
         borderBottom: '1px solid var(--border)', background: 'rgba(0,196,180,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <span style={{ fontSize: 10, color: 'var(--text-sec)', fontFamily: 'var(--font-mono)' }}>{ANALYSIS_INFO.analysisDate}</span>
@@ -88,7 +84,7 @@ export default function Sidebar({
         <div style={{ fontSize: 10, color: 'var(--acc-teal)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>기준: {ANALYSIS_INFO.criterion}</div>
       </div>
 
-      <div style={{ padding: mobile ? '8px 14px 4px' : '8px 18px 6px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: mobile ? '8px 12px 4px' : '8px 12px 6px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-sec)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>상부댐 목록</div>
         <div style={{ fontSize: 11, color: 'var(--text-pri)', opacity: 0.6, marginTop: 2 }}>상부댐 {upperItems.length}개 · 탭하여 선택</div>
       </div>
@@ -96,17 +92,17 @@ export default function Sidebar({
       <div style={{ overflow: 'auto', flex: 1 }}>
         {/* 하부댐은 하단 FlightBar 버튼으로 접근합니다. 여기는 상부댐만. */}
         {upperItems.length > 0 && (<>
-          <div style={{ padding: '8px 16px 3px', fontSize: 9, color: '#00aaff', fontFamily: 'var(--font-mono)',
+          <div style={{ padding: '8px 12px 3px', fontSize: 9, color: '#00aaff', fontFamily: 'var(--font-mono)',
             background: 'rgba(0,170,255,0.06)', borderTop: '1px solid var(--border)' }}>▼ 상부댐 (양수) {upperItems.length}개</div>
           {upperItems.map(renderItem)}
         </>)}
         {upperItems.length === 0 && items.length > 0 && (<>
-          <div style={{ padding: '8px 16px 3px', fontSize: 9, color: 'var(--text-sec)',
+          <div style={{ padding: '8px 12px 3px', fontSize: 9, color: 'var(--text-sec)',
             fontFamily: 'var(--font-mono)', borderTop: '1px solid var(--border)' }}>Abra 유역</div>
           {items.map(renderItem)}
         </>)}
         {items.length === 0 && (
-          <div style={{ padding: '24px 18px', textAlign: 'center', fontSize: 12, color: 'var(--text-sec)', fontFamily: 'var(--font-mono)' }}>후보지 로딩 중...</div>
+          <div style={{ padding: '24px 12px', textAlign: 'center', fontSize: 12, color: 'var(--text-sec)', fontFamily: 'var(--font-mono)' }}>후보지 로딩 중...</div>
         )}
       </div>
 
@@ -124,7 +120,7 @@ export default function Sidebar({
       )}
 
       {/* 삼안 로고 — 패널 최하단 (둥근 알약) */}
-      <div style={{ padding: mobile ? '12px 16px' : '12px 18px', flexShrink: 0,
+      <div style={{ padding: mobile ? '12px 16px' : '10px 12px', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ display: 'inline-flex', width: '100%', boxSizing: 'border-box',
           background: '#ffffff', borderRadius: 13, padding: '7px 12px',

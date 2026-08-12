@@ -31,7 +31,6 @@ const PAIR_LOWER = {
 export default function App() {
   const [selected,   setSelected]   = useState(null)
   const [heightM,    setHeightM]    = useState(DEFAULT_H)
-  const [showFlood,  setShowFlood]  = useState(false)
 
   const [simResult,  setSimResult]  = useState(null)
   const [simLoading, setSimLoading] = useState(false)
@@ -64,7 +63,7 @@ export default function App() {
   //  flyDuration:null → Cesium 이 이동거리에 맞춰 시간을 정합니다(자연스러운 등속).
   const flood = useFlood({
     viewer,
-    fraction: 1 / 3,
+    fraction: 0.358,   // 화면 점유율(선형). 1/3 → 0.358 = √1.15 배 → 수몰면 면적 1.15 배
     pitchDeg: -89.5,
     mode: 'broadside',
     elevBoost: 2.0,    // 상부댐은 낙차 × 2 만큼 더 높이 — 규모 차이가 보이도록
@@ -122,7 +121,6 @@ export default function App() {
   const handleSelect = useCallback((c, clearWater = true) => {
     setSelected(c)
     setHeightM(DEFAULT_H)          // 항상 100 m 댐 기준
-    setShowFlood(false)
     setSimResult(null)
     runSimulate(c, DEFAULT_H)
     if (clearWater) flood.clear()
@@ -237,8 +235,6 @@ export default function App() {
         candidates={UPPER_DAMS.map(d => CANDIDATES.find(c => c.id === d.id)).filter(Boolean)}
         selected={selected}
         onSelect={(c) => handleDamJump(c.id)}
-        showFlood={showFlood}
-        onToggleFlood={() => setShowFlood(v => !v)}
         river={RIVER}
         tributaries={TRIBUTARIES}
         dams={RIVER_DAMS}
@@ -252,7 +248,9 @@ export default function App() {
           candidates={CANDIDATES}
           selected={selected}
           heightM={heightM}
-          showFlood={showFlood && !flood.ui.damId}
+          /* 백엔드 flood_geojson 경로. 백엔드를 되살릴 때 이 한 줄만 복구하면 됩니다.
+             2단계 담수는 floodPolygons.js 정적 데이터라 이 값과 무관합니다. */
+          showFlood={false}
           simResult={simResult}
           onSelect={(c) => handleDamJump(c.id)}
           onViewerReady={setViewer}

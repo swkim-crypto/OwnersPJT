@@ -6,18 +6,22 @@
 .fd-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px 12px;
+  flex-wrap: nowrap;          /* wrap → nowrap : 항상 한 줄 */
+  overflow: hidden;
   border-bottom: 1px solid var(--fb-edge);
   background: var(--fb-panel);
 }
+/* 기본은 고정폭. 아래 .fd-stats 가 같은 특정도로 뒤에 와서 이 규칙을 덮고
+   혼자 남는 폭을 차지합니다 — 순서를 바꾸면 제원이 늘어나지 않습니다. */
+.fd-row > * { flex: none; }
 
 /* 수위 게이지 */
 .fd-gauge {
   position: relative;
-  width: 168px;
-  height: 20px;
+  width: 150px;
+  height: 18px;
   border: 1px solid var(--fb-edge);
   border-radius: 4px;
   background: var(--fb-panel2);
@@ -47,13 +51,17 @@
 .fd-stats {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;             /* 남는 폭을 전부 차지하고 */
+  min-width: 0;               /* 넘치면 잘립니다 (줄바꿈 대신) */
+  flex-wrap: nowrap;
+  overflow: hidden;
   font-size: 11px;
   color: var(--fb-tx);
   padding-left: 8px;
   border-left: 1px solid var(--fb-edge);
 }
+.fd-stats > * { white-space: nowrap; }
 .fd-stats b { color: var(--fb-cyan); font-weight: 600; }
 .fd-dim { color: var(--fb-txD); }
 

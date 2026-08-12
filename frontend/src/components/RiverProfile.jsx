@@ -85,8 +85,8 @@ export default function RiverProfile({ river, derived, highlights, dams, fl, sel
       const on = dm.id === selectedId
       ctx.save()
       ctx.strokeStyle = c
-      ctx.globalAlpha = on ? 0.95 : 0.45
-      ctx.lineWidth = on ? 2 : 1
+      ctx.globalAlpha = on ? 1.0 : 0.59
+      ctx.lineWidth = on ? 2.4 : 1.3
       if (!on) ctx.setLineDash([2, 3])
       ctx.beginPath(); ctx.moveTo(x, 12); ctx.lineTo(x, H - 16); ctx.stroke()
       ctx.restore()

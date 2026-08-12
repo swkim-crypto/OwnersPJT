@@ -24,11 +24,11 @@ export function useFlight({ viewer, river, derived, highlights, active }) {
   // 변경이 잦은 값 — ref
   const fl = useRef({
     chain: 0, playing: false, dir: -1,
-    mode: 'std', speed: 1, agl: 700, exag: 1,
+    mode: 'std', speed: 1, agl: 900, exag: 1,
   })
   // UI 반영용 미러
   const [ui, setUi] = useState({
-    playing: false, dir: -1, mode: 'std', speed: 1, agl: 700, exag: 1, chainKm: 0,
+    playing: false, dir: -1, mode: 'std', speed: 1, agl: 900, exag: 1, chainKm: 0,
   })
   const rafRef = useRef(null)
   const lastT  = useRef(null)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   estimateVolume, estimateArea, calcFsl, calcEfficiency, estimateEvap,
   PRIORITY_CONFIG, HEIGHT_STEPS, CANDIDATES,
@@ -7,6 +7,13 @@ import { damLengths } from '../data/damLengths.js'
 import ProfileChart from './ProfileChart.jsx'
 
 const isApproxMode = c => c.bed == null || c.baseArea == null
+
+// 댐고 선택 범위. 30~120 · 5m 스텝이면 19개라 페이지 분할이 필요 없습니다.
+//  ※ floodPolygons.js 는 10m 간격이라, 35 같은 값은 snapHeight 로 40 에
+//    스냅됩니다. 실제 적용된 값은 하단 FloodBar 의 「댐고」 표시로 확인하세요.
+//  ※ CBC3-하부는 H=20·30 데이터가 없어 40 이 실질 하한입니다.
+const H_MIN = 30
+const H_MAX = 120
 
 function estimatePower(volumeMm3, dropM, opHours = 2000, eta = 0.85) {
   if (!volumeMm3 || !dropM || dropM <= 0) return { power: null, energy: null }
@@ -43,44 +50,19 @@ function StatCard({ label, value, unit, sub, highlight, yellow }) {
 export default function DetailPanel({ candidate, heightM, onHeightChange, simResult, simLoading }) {
   const approx = candidate ? isApproxMode(candidate) : false
 
-  // 높이 컨트롤 상태: 스텝(10/5), 상한(120/200), 페이지
+  // 높이 컨트롤 상태: 스텝(10/5)만. 범위는 H_MIN~H_MAX 고정.
   const [stepMode, setStepMode] = useState(5)
-  const [maxH, setMaxH] = useState(120)
-  const [pageIdx, setPageIdx] = useState(0)
-  const H_MIN = 20
 
-  // 현재 스텝·상한 기준 전체 높이 → 필요 시 구간 페이지로 분할
-  const allHeights = []
-  for (let h = H_MIN; h <= maxH; h += stepMode) allHeights.push(h)
-  const pages = []
-  if (allHeights.length <= 22) {
-    pages.push(allHeights)
-  } else {
-    let chunk = []
-    for (const h of allHeights) {
-      chunk.push(h)
-      if (h === 120 && maxH > 120) { pages.push(chunk); chunk = [] }
-    }
-    if (chunk.length) pages.push(chunk)
-  }
-  const safePage = Math.min(pageIdx, pages.length - 1)
-  const curHeights = pages[safePage]
-
-  // 현재 높이가 속한 페이지로 자동 이동
-  useEffect(() => {
-    const idx = pages.findIndex(pg => pg.includes(heightM))
-    if (idx >= 0 && idx !== pageIdx) setPageIdx(idx)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heightM, stepMode, maxH])
+  const curHeights = useMemo(() => {
+    const a = []
+    for (let h = H_MIN; h <= H_MAX; h += stepMode) a.push(h)
+    return a
+  }, [stepMode])
 
   const switchStep = (m) => {
     setStepMode(m)
-    const snapped = Math.min(maxH, Math.max(H_MIN, Math.round(heightM / m) * m))
+    const snapped = Math.min(H_MAX, Math.max(H_MIN, Math.round(heightM / m) * m))
     if (snapped !== heightM) onHeightChange(snapped)
-  }
-  const switchMax = (mx) => {
-    setMaxH(mx)
-    if (heightM > mx) onHeightChange(mx)
   }
 
   const stats = useMemo(() => {
@@ -114,7 +96,7 @@ export default function DetailPanel({ candidate, heightM, onHeightChange, simRes
   }, [candidate, heightM, approx])
 
   if (!candidate || !stats) return (
-    <div style={{ width:420, display:'flex', alignItems:'center', justifyContent:'center',
+    <div style={{ width:357, display:'flex', alignItems:'center', justifyContent:'center',
       color:'var(--text-sec)', fontSize:13, fontFamily:'var(--font-mono)', height:'100%',
       background:'var(--bg-panel)', borderLeft:'1px solid var(--border)' }}>
       후보지를 선택해 주세요
@@ -135,7 +117,7 @@ export default function DetailPanel({ candidate, heightM, onHeightChange, simRes
   })
 
   return (
-    <div style={{ width:420, background:'var(--bg-panel)', borderLeft:'1px solid var(--border)',
+    <div style={{ width:357, background:'var(--bg-panel)', borderLeft:'1px solid var(--border)',
       display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0, height:'100%' }}>
 
       <div style={{ padding:'8px 14px 7px', borderBottom:'1px solid var(--border)', background:'var(--bg-card)', flexShrink:0 }}>
@@ -182,28 +164,15 @@ export default function DetailPanel({ candidate, heightM, onHeightChange, simRes
             )}
           </div>
 
-          {/* 행2: 스텝 토글 + 범위 토글 + (페이지 칩) */}
-          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
-            <div style={{ display:'flex', gap:4 }}>
-              {[10,5].map(m => <button key={m} onClick={()=>switchStep(m)} style={toggleBtn(stepMode===m)}>{m}m</button>)}
-            </div>
-            <div style={{ width:1, height:16, background:'rgba(255,255,255,0.12)' }} />
-            <div style={{ display:'flex', gap:4 }}>
-              {[120,200].map(mx => <button key={mx} onClick={()=>switchMax(mx)} style={toggleBtn(maxH===mx)}>~{mx}</button>)}
-            </div>
-            {pages.length > 1 && <>
-              <div style={{ flex:1 }} />
-              <div style={{ display:'flex', gap:4 }}>
-                {pages.map((pg,i) => (
-                  <button key={i} onClick={()=>setPageIdx(i)} style={{
-                    ...toggleBtn(i===safePage), padding:'2px 7px',
-                  }}>{pg[0]}–{pg[pg.length-1]}</button>
-                ))}
-              </div>
-            </>}
+          {/* 행2: 스텝 토글 + 범위 표시 */}
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+            <span style={{ fontSize:11, color:'#a0bcd0', fontFamily:'var(--font-mono)' }}>스텝</span>
+            {[10,5].map(m => <button key={m} onClick={()=>switchStep(m)} style={toggleBtn(stepMode===m)}>{m}m</button>)}
+            <div style={{ flex:1 }} />
+            <span style={{ fontSize:11, color:'#5a7a90', fontFamily:'var(--font-mono)' }}>{H_MIN}–{H_MAX} m</span>
           </div>
 
-          <input type="range" min={H_MIN} max={maxH} step={stepMode} value={heightM}
+          <input type="range" min={H_MIN} max={H_MAX} step={stepMode} value={heightM}
             onChange={e => onHeightChange(Number(e.target.value))}
             style={{ width:'100%', marginBottom:8, accentColor:'var(--acc-teal)', cursor:'pointer' }}
           />
@@ -212,7 +181,7 @@ export default function DetailPanel({ candidate, heightM, onHeightChange, simRes
           <div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
             {curHeights.map(h => (
               <button key={h} onClick={() => onHeightChange(h)} style={{
-                width:'calc(9.09% - 3px)', minWidth:30, padding:'3px 0',
+                width:'calc(10% - 3px)', minWidth:26, padding:'3px 0',
                 background: h===heightM ? 'var(--acc-teal)' : 'transparent',
                 color:      h===heightM ? 'var(--bg-deep)' : '#a0bcd0',
                 border:    `1px solid ${h===heightM?'var(--acc-teal)':'rgba(255,255,255,0.12)'}`,

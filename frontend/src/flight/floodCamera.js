@@ -129,7 +129,7 @@ export function planFloodView(viewer, damId, H, opts = {}) {
     rangeBoost,
     rangeScale,
     padding: opts.padding ?? 1.0,
-    minRange: opts.minRange ?? 300,
+    minRange: opts.minRange ?? 280,
     maxRange: opts.maxRange ?? 60000,
   }), fr)
 }
@@ -224,7 +224,7 @@ export function planPairView(viewer, ids, H, opts = {}) {
     rangeBoost: 0,
     rangeScale: 1,
     padding: opts.padding ?? 1.0,
-    minRange: opts.minRange ?? 300,
+    minRange: opts.minRange ?? 280,
     maxRange: opts.maxRange ?? 60000,
   }), fr)
 }
