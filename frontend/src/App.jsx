@@ -19,6 +19,15 @@ const DEFAULT_H = 100    // 댐 선택 시 기준 댐고 (m)
 const LOWER_DAMS = RIVER_DAMS.filter(d => d.type === 'lower')
 const UPPER_DAMS = RIVER_DAMS.filter(d => d.type === 'upper')
 
+// 양수 페어 — 인수인계 §4 crossSections 페어링과 동일.
+//  CBC1-하부가 상부 2개(CBC1·CBC2)를 받습니다.
+const PAIR_LOWER = {
+  CBC1_UP: 'CBC1_DOWN',
+  CBC2_UP: 'CBC1_DOWN',
+  CBC3_UP: 'CBC3_DOWN',
+  CBC4_UP: 'CBC4_DOWN',
+}
+
 export default function App() {
   const [selected,   setSelected]   = useState(null)
   const [heightM,    setHeightM]    = useState(DEFAULT_H)
@@ -132,7 +141,8 @@ export default function App() {
     if (c) handleSelect(c, false)
     if (dm) ctrl.seek(dm.d)
     lastFocusH.current = DEFAULT_H
-    flood.focus(id, DEFAULT_H, { autoFill: true })
+    // 상부댐이면 연결된 하부댐도 함께 담수 (하부댐 단독 선택은 그 댐만)
+    flood.focus(id, DEFAULT_H, { autoFill: true, pairWith: PAIR_LOWER[id] })
   }, [ctrl, handleSelect, flood])
 
   // 댐고 슬라이더가 바뀌면 같은 댐을 다시 프레이밍 (담수는 시작하지 않음)
@@ -146,7 +156,7 @@ export default function App() {
     if (selected && selected.id !== id) return
     if (heightM === lastFocusH.current) return
     lastFocusH.current = heightM
-    flood.focus(id, heightM, { autoFill: false })
+    flood.focus(id, heightM, { autoFill: false, pairWith: PAIR_LOWER[id] })
   }, [heightM])                            // eslint-disable-line
 
   // 창 크기 변경 → 재프레이밍 (점유율은 종횡비에 직접 걸림)

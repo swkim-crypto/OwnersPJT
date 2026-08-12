@@ -76,3 +76,10 @@
   color: var(--fb-amber);
   animation: fd-blink 1.1s steps(1) infinite;
 }
+
+/* 함께 담수되는 연결 하부댐 */
+.fd-pair {
+  color: var(--fb-amber);
+  padding-left: 8px;
+  border-left: 1px solid var(--fb-edge);
+}

@@ -122,3 +122,52 @@ export function setFloodView(viewer, view) {
     orientation: orientationOf(view),
   })
 }
+
+/**
+ * 상부–하부 쌍(揚水 페어)을 한 화면에 담는 뷰.
+ *
+ *  상부댐만 프레이밍하면 하부댐이 1.0~2.4 km 떨어져 있어 화면 밖으로 나갑니다.
+ *  두 수몰면의 링을 합쳐 하나의 범위로 놓고 거리를 역산합니다.
+ *
+ *  축은 "하부 → 합성중심" 방향, 즉 대략 하부→상부 방향(수압관로 축)입니다.
+ *  broadside 로 두면 그 축이 화면 가로로 눕고, 왼쪽 하부 · 오른쪽 상부
+ *  (또는 그 반대)로 나란히 보입니다.
+ *
+ *  이 모드에서는 elevBoost/upperScale 을 쓰지 않습니다. 이격거리가 이미
+ *  범위를 지배해서(9~18 km) 추가 보정이 거의 의미가 없고, 하부댐이 함께
+ *  보이는 것만으로 낙차가 읽히기 때문입니다.
+ *
+ * @param {string[]} ids  [상부ID, 하부ID] — 마지막 원소가 축 기준점
+ */
+export function planPairView(viewer, ids, H, opts = {}) {
+  const list = ids.map(id => ({ id, s: floodSlice(id, H) })).filter(x => x.s)
+  if (list.length === 0) return null
+  if (list.length === 1) return planFloodView(viewer, list[0].id, H, opts)
+
+  const rings = list.flatMap(x => x.s.rings)
+  const bbox = list.reduce((acc, x) => ([
+    Math.min(acc[0], x.s.bbox[0]), Math.min(acc[1], x.s.bbox[1]),
+    Math.max(acc[2], x.s.bbox[2]), Math.max(acc[3], x.s.bbox[3]),
+  ]), [Infinity, Infinity, -Infinity, -Infinity])
+
+  const anchor = damOf(list[list.length - 1].id)
+  const fsl = Math.max(...list.map(x => x.s.fsl))
+
+  return computeFloodView({
+    rings, bbox,
+    dam: anchor ? { lon: anchor.lon, lat: anchor.lat } : null,
+    fsl,
+    damHeight: list[0].s.H,
+    aspect: viewerAspect(viewer),
+    fovy: viewerFovy(viewer),
+    fraction: opts.fraction ?? 1 / 3,
+    pitchDeg: opts.pitchDeg ?? -38,
+    mode: 'broadside',
+    aimBias: 0,
+    rangeBoost: 0,
+    rangeScale: 1,
+    padding: opts.padding ?? 1.0,
+    minRange: opts.minRange ?? 300,
+    maxRange: opts.maxRange ?? 60000,
+  })
+}

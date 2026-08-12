@@ -74,6 +74,11 @@ export default function FloodBar({ flood, heightM, onHeightChange }) {
             <span>저수 {fmt(ui.stats.volume_mm3, 2)} Mm³</span>
             {ui.stats.power_mw != null && <span>출력 {fmt(ui.stats.power_mw, 1)} MW</span>}
             {ui.stats.energy_gwh != null && <span>발전 {fmt(ui.stats.energy_gwh, 1)} GWh</span>}
+            {ui.pairStats?.map(p => (
+              <span key={p.id} className="fd-pair">
+                + {p.label} 저수 {fmt(p.volume_mm3, 2)} Mm³
+              </span>
+            ))}
             {ui.view && (
               <span className="fd-dim">
                 카메라 {Math.round(ui.view.range)} m · {ui.view.mode === 'broadside' ? '측면' : '축선'}
