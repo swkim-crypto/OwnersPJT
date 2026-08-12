@@ -104,39 +104,51 @@ export default function CesiumViewer({
     const v = viewerRef.current; if (!v) return
     clearEnts(markerEntRef)
     candidates.forEach(c => {
-      const isSel  = selected?.id === c.id
+      const isSel   = selected?.id === c.id
       const isUpper = c.damType === 'upper'
-      const color  = isSel ? '#00c4b4' : isUpper ? '#00aaff' : '#f0a500'
-      const size   = isSel ? 30 : 22
-      // 지면 밀착형 마커.
-      //  이전 버전은 52px 풍선 위에 원이 얹혀 있어 실제 지점보다 40px 가까이
-      //  위에 찍혔습니다. 3D 지형에서 하천 어디에 있는지 읽기 어려웠습니다.
-      //  → 원을 지면에 놓고, 라벨은 별도 label 로 옆에 붙입니다.
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8" fill="${color}" fill-opacity="0.95"
-          stroke="#ffffff" stroke-width="1.6"/>
-        <circle cx="12" cy="12" r="2.4" fill="#050c14" fill-opacity="0.85"/>
-      </svg>`
+      const hex     = isSel ? '#00c4b4' : isUpper ? '#00aaff' : '#f0a500'
+      const col     = Cesium.Color.fromCssColorString(hex)
+
+      // 지면에 드리우는 원판 + 작은 점.
+      //
+      //  빌보드(풍선 이미지)를 쓰면 아무리 작게 만들어도 화면좌표 기준이라
+      //  실제 지점보다 위에 뜬 것처럼 보입니다. 게다가
+      //  disableDepthTestDistance 로 지형을 뚫고 그려져서, 앞에 있는 능선
+      //  위에 겹쳐 보이면 공중에 떠 있는 것으로 읽힙니다.
+      //
+      //  ellipse + CLAMP_TO_GROUND 는 지형면에 실제로 드리우는(draped)
+      //  기하라 능선에 가려지고 계곡 바닥을 따라 휩니다. 그래서
+      //  "저기 강바닥에 있다"가 바로 읽힙니다.
+      const r = isSel ? 70 : 50          // 원판 반지름 (m)
+
       markerEntRef.current.push(v.entities.add({
         position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat),
-        billboard: {
-          image: `data:image/svg+xml;base64,${btoa(svg)}`,
-          width:size, height:size,
-          verticalOrigin:  Cesium.VerticalOrigin.CENTER,   // 지면에 딱 붙임
+        ellipse: {
+          semiMajorAxis: r, semiMinorAxis: r,
+          material: col.withAlpha(isSel ? 0.75 : 0.60),
+          // 지면 드리움 기하는 outline 을 지원하지 않습니다(경고만 남고 무시됨)
+          outline: false,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        point: {
+          pixelSize: isSel ? 9 : 6,
+          color: col,
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.9),
+          outlineWidth: 1.5,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          // 깊이 테스트를 켜 둡니다 — 앞산에 가려져야 지면에 붙은 것으로 보입니다
         },
         label: {
           text: getDamLabel(c.id),
-          font: `${isSel ? 13 : 11}px monospace`,
-          fillColor: Cesium.Color.fromCssColorString(color),
+          font: `${isSel ? 12 : 10}px monospace`,
+          fillColor: col,
           outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
           verticalOrigin: Cesium.VerticalOrigin.CENTER,
-          pixelOffset: new Cesium.Cartesian2(size * 0.75, 0),
+          pixelOffset: new Cesium.Cartesian2(10, 0),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          translucencyByDistance: new Cesium.NearFarScalar(2000, 1.0, 40000, 0.35),
         },
         properties: { damId: c.id },
       }))
