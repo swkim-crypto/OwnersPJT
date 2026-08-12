@@ -127,6 +127,8 @@ export function floodExtent(rings, bbox, dam) {
  *                                 상·하부를 똑같이 화면 1/3 로 맞추면 둘이 같은
  *                                 크기로 보여 규모 차이가 사라집니다. 이 값만큼
  *                                 더 높이 올라가 상부댐이 작게 보이도록 합니다.
+ * @param {number} [o.rangeScale]  최종 거리 배율. 상부댐을 더 멀리 띄워
+ *                                 "고지대로 퍼올린다"는 느낌을 주는 용도.
  * @param {number} [o.padding]     여유 배율
  * @param {number} [o.minRange]    최소 거리 — 근접 시 지형 클리핑 방지
  * @param {number} [o.maxRange]
@@ -148,6 +150,7 @@ export function computeFloodView(o) {
     mode = 'auto',
     aimBias = 0.2,
     rangeBoost = 0,
+    rangeScale = 1.0,
     padding = 1.0,
     minRange = 300,
     maxRange = 60000,
@@ -173,7 +176,7 @@ export function computeFloodView(o) {
     const hY = ((broad ? ext.acrossM : ext.alongM) * sinP + damHeight * cosP) / 2
     const Dx = hX / (fraction * tanX)
     const Dy = hY / (fraction * tanY)
-    const raw = Math.max(Dx, Dy) * padding + Math.max(0, rangeBoost)
+    const raw = (Math.max(Dx, Dy) * padding + Math.max(0, rangeBoost)) * rangeScale
     return { m, headingDeg, hX, hY, raw, limitedBy: Dy >= Dx ? 'y' : 'x' }
   }
 

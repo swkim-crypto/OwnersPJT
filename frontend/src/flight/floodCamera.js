@@ -51,9 +51,12 @@ export function planFloodView(viewer, damId, H, opts = {}) {
   // 상대고도 보정 — 상부댐은 낙차(drop)만큼 더 높이 올라갑니다.
   //  하부댐은 drop 이 null 이라 보정 0. 결과적으로 상부댐 저수지가
   //  하부댐보다 확실히 작게 보입니다.
+  const isUpper = (slice.rec?.damType ?? dam?.type) === 'upper'
   const drop = slice.rec?.drop ?? dam?.drop ?? 0
   const elevBoost = opts.elevBoost ?? 1.0
   const rangeBoost = (drop || 0) * elevBoost
+  // 상부댐만 한 번 더 멀리 — 주변 계곡이 함께 보여야 "퍼올린다"가 읽힙니다.
+  const rangeScale = isUpper ? (opts.upperScale ?? 1.5) : 1.0
 
   return computeFloodView({
     rings: slice.rings,
@@ -68,6 +71,7 @@ export function planFloodView(viewer, damId, H, opts = {}) {
     mode: opts.mode ?? 'auto',
     aimBias: opts.aimBias ?? 0.2,
     rangeBoost,
+    rangeScale,
     padding: opts.padding ?? 1.0,
     minRange: opts.minRange ?? 300,
     maxRange: opts.maxRange ?? 60000,

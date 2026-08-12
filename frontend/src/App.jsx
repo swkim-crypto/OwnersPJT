@@ -59,6 +59,7 @@ export default function App() {
     pitchDeg: -89.5,
     mode: 'broadside',
     elevBoost: 2.0,    // 상부댐은 낙차 × 2 만큼 더 높이 — 규모 차이가 보이도록
+    upperScale: 1.5,   // 상부댐만 한 번 더 1.5배 — "고지대로 퍼올린다"는 느낌
     fillSeconds: 5,
     flyDuration: null,
   })

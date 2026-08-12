@@ -107,19 +107,34 @@ export default function CesiumViewer({
       const isSel  = selected?.id === c.id
       const isUpper = c.damType === 'upper'
       const color  = isSel ? '#00c4b4' : isUpper ? '#00aaff' : '#f0a500'
-      const size   = isSel ? 52 : 38
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="20" r="16" fill="${color}" fill-opacity="0.92" stroke="#fff" stroke-width="1.5"/>
-        <text x="26" y="25" text-anchor="middle" font-size="8" font-weight="700"
-          font-family="monospace" fill="#050c14">${c.id}</text>
-        <polygon points="26,44 19,32 33,32" fill="${color}" fill-opacity="0.92"/>
+      const size   = isSel ? 30 : 22
+      // 지면 밀착형 마커.
+      //  이전 버전은 52px 풍선 위에 원이 얹혀 있어 실제 지점보다 40px 가까이
+      //  위에 찍혔습니다. 3D 지형에서 하천 어디에 있는지 읽기 어려웠습니다.
+      //  → 원을 지면에 놓고, 라벨은 별도 label 로 옆에 붙입니다.
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" fill="${color}" fill-opacity="0.95"
+          stroke="#ffffff" stroke-width="1.6"/>
+        <circle cx="12" cy="12" r="2.4" fill="#050c14" fill-opacity="0.85"/>
       </svg>`
       markerEntRef.current.push(v.entities.add({
         position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat),
         billboard: {
           image: `data:image/svg+xml;base64,${btoa(svg)}`,
           width:size, height:size,
-          verticalOrigin:  Cesium.VerticalOrigin.BOTTOM,
+          verticalOrigin:  Cesium.VerticalOrigin.CENTER,   // 지면에 딱 붙임
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: getDamLabel(c.id),
+          font: `${isSel ? 13 : 11}px monospace`,
+          fillColor: Cesium.Color.fromCssColorString(color),
+          outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+          verticalOrigin: Cesium.VerticalOrigin.CENTER,
+          pixelOffset: new Cesium.Cartesian2(size * 0.75, 0),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
@@ -188,9 +203,9 @@ export default function CesiumViewer({
     // FSL 레이블
     const oc = isUpper ? C_UPPER_OUTL : C_LOWER_OUTL
     damEntRef.current.push(v.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(selected.lon, selected.lat, fsl + 80),
+      position: Cesium.Cartesian3.fromDegrees(selected.lon, selected.lat, fsl + 25),
       label: {
-        text: `${label}  FSL ${fsl.toFixed(0)}m`,
+        text: `${label} · FSL ${fsl.toFixed(0)} m`,
         font:'13px monospace', fillColor:oc,
         outlineColor:Cesium.Color.BLACK, outlineWidth:2,
         style:Cesium.LabelStyle.FILL_AND_OUTLINE,
