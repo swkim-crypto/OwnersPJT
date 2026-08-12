@@ -23,12 +23,12 @@ export default function App() {
   const [selected,   setSelected]   = useState(null)
   const [heightM,    setHeightM]    = useState(DEFAULT_H)
   const [showFlood,  setShowFlood]  = useState(false)
-  const [flyTo,      setFlyTo]      = useState(null)
 
   const [simResult,  setSimResult]  = useState(null)
   const [simLoading, setSimLoading] = useState(false)
 
   const debounceRef = useRef(null)
+  const lastFocusH  = useRef(DEFAULT_H)   // 마지막으로 flood.focus 에 넘긴 댐고
 
   // ── 비행 엔진 (1단계) ────────────────────────
   const [viewer, setViewer] = useState(null)
@@ -98,6 +98,14 @@ export default function App() {
   // ── 댐 선택 ──────────────────────────────────
   //  clearWater=true : 단순 선택. 이전 담수 수면을 지웁니다.
   //  clearWater=false: 곧바로 flood.focus 가 이어지는 경로(handleDamJump).
+  //
+  //  ★ flyTo 를 더 이상 쓰지 않습니다.
+  //    flyTo 를 올리면 CesiumViewer 의 flyToSelected(전방 1km · 피치 -15°)가
+  //    돌아서 2단계 수직 부감과 카메라를 다투게 됩니다. React 18 의 useEffect 는
+  //    페인트 이후에 flush 되므로 requestAnimationFrame 보다 늦게 실행될 수
+  //    있어, 어느 쪽이 마지막에 카메라를 잡을지 보장되지 않았습니다.
+  //    (첫 댐에서 유독 잦았던 경사뷰의 원인)
+  //    이제 댐 선택 경로는 handleDamJump 하나뿐이므로 flyTo 자체가 불필요합니다.
   const handleSelect = useCallback((c, clearWater = true) => {
     setSelected(c)
     setHeightM(DEFAULT_H)          // 항상 100 m 댐 기준
@@ -105,7 +113,6 @@ export default function App() {
     setSimResult(null)
     runSimulate(c, DEFAULT_H)
     if (clearWater) flood.clear()
-    setFlyTo({ id: c.id, ts: Date.now() })
   }, [runSimulate, flood])
 
   const handleHeightChange = useCallback((h) => {
@@ -115,23 +122,30 @@ export default function App() {
 
   // ── 댐 선택 → 비행 정지 + 수직 부감 + 담수 ─────
   //
-  //  handleSelect 가 flyTo 를 갱신하면 CesiumViewer 의 flyToSelected(고정 1km)가
-  //  카메라를 잡습니다. 그래서 flood.focus 는 다음 프레임으로 미뤄 마지막에
-  //  들어가게 합니다. flyToFloodView 가 진행 중인 비행을 cancelFlight 로 끊습니다.
+  //  경쟁하는 카메라가 없어졌으므로 동기로 호출합니다.
+  //  ctrl.seek 는 종단 커서를 옮기면서 setCamera 로 비행 카메라를 한 번 잡는데,
+  //  바로 이어지는 flyToFloodView 가 그 지점에서 출발하므로 문제 없습니다.
   const handleDamJump = useCallback((id) => {
     ctrl.stop()
     const c  = CANDIDATES.find(x => x.id === id)
     const dm = RIVER_DAMS.find(x => x.id === id)
     if (c) handleSelect(c, false)
     if (dm) ctrl.seek(dm.d)
-    requestAnimationFrame(() => flood.focus(id, DEFAULT_H, { autoFill: true }))
+    lastFocusH.current = DEFAULT_H
+    flood.focus(id, DEFAULT_H, { autoFill: true })
   }, [ctrl, handleSelect, flood])
 
   // 댐고 슬라이더가 바뀌면 같은 댐을 다시 프레이밍 (담수는 시작하지 않음)
+  //
+  //  lastFocusH 가드가 없으면: 슬라이더를 만진 뒤 다른 댐을 고를 때
+  //  handleSelect 가 heightM 을 100 으로 되돌리면서 이 효과가 떠서
+  //  방금 시작한 담수를 autoFill:false 로 덮어 꺼버립니다.
   useEffect(() => {
     const id = flood.ui.damId
     if (!id) return
     if (selected && selected.id !== id) return
+    if (heightM === lastFocusH.current) return
+    lastFocusH.current = heightM
     flood.focus(id, heightM, { autoFill: false })
   }, [heightM])                            // eslint-disable-line
 
@@ -226,7 +240,6 @@ export default function App() {
           heightM={heightM}
           showFlood={showFlood && !flood.ui.damId}
           simResult={simResult}
-          flyTo={flyTo}
           onSelect={(c) => handleDamJump(c.id)}
           onViewerReady={setViewer}
           showHint={false}
