@@ -47,7 +47,7 @@ export function useFlood({
   pitchDeg = -38,
   mode = 'auto',
   fillSeconds = 8,
-  flyDuration = 2.0,
+  flyDuration = null,   // null = Cesium 자동(이동거리 비례)
   smooth = false,
 } = {}) {
   const st = useRef({

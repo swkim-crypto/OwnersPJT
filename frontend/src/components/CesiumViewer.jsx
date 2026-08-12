@@ -34,12 +34,10 @@ const C_UPPER_WALL  = Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.88)
 const C_UPPER_OUTL  = Cesium.Color.fromCssColorString('#80ffff')
 const C_UPPER_FLOOD = Cesium.Color.fromCssColorString('#0d47a1').withAlpha(0.50)
 const C_UPPER_STR   = Cesium.Color.fromCssColorString('#40c4ff').withAlpha(0.80)
-const C_RIVER       = Cesium.Color.fromCssColorString('#3fe3df').withAlpha(0.85)
 
 export default function CesiumViewer({
   candidates, selected, heightM, showFlood, simResult, flyTo, onSelect,
   onViewerReady,          // ← 1단계: 비행 엔진이 카메라를 잡으려면 viewer 가 밖으로 나와야 함
-  river,                  // ← 1단계: 하천 중심선 폴리라인
   showHint = true,        // ← FlightBar 가 하단을 덮으므로 App 에서 false
 }) {
   const containerRef = useRef(null)
@@ -47,7 +45,6 @@ export default function CesiumViewer({
   const damEntRef    = useRef([])
   const floodEntRef  = useRef([])
   const markerEntRef = useRef([])
-  const riverEntRef  = useRef([])
   const readyCbRef   = useRef(onViewerReady)
   readyCbRef.current = onViewerReady
 
@@ -101,21 +98,6 @@ export default function CesiumViewer({
     ref.current.forEach(e => { try { v.entities.remove(e) } catch(_){} })
     ref.current = []
   }
-
-  // ── 하천 중심선 (1단계) ──────────────────────────
-  useEffect(() => {
-    const v = viewerRef.current
-    if (!v || !ready || !river) return
-    clearEnts(riverEntRef)
-    riverEntRef.current.push(v.entities.add({
-      polyline: {
-        positions: Cesium.Cartesian3.fromDegreesArray(
-          river.lon.flatMap((lo, i) => [lo, river.lat[i]])
-        ),
-        clampToGround: true, width: 3, material: C_RIVER,
-      },
-    }))
-  }, [ready, river])
 
   // ── 마커 ─────────────────────────────────────────
   const drawMarkers = useCallback(() => {
@@ -190,8 +172,9 @@ export default function CesiumViewer({
 
   // ── 댐 그리기 ────────────────────────────────────
   const drawDam = useCallback(() => {
-    const v = viewerRef.current; if (!v || !selected) return
+    const v = viewerRef.current; if (!v) return
     clearEnts(damEntRef)
+    if (!selected) return          // 재생 시작 시 selected=null → 댐 그래픽 제거
 
     const fsl     = calcFsl(selected, heightM)
     const isUpper = selected.damType === 'upper'

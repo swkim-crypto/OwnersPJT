@@ -17,7 +17,6 @@ export default function Sidebar({
   river, tributaries = [], dams = [], fl, onSeek,   // ← 1단계 인덱스맵
 }) {
   const items      = (candidates ?? []).filter(c => REGION_ORDER.some(r => c.region === r))
-  const lowerItems = items.filter(c => getDamType(c) === 'lower')
   const upperItems = items.filter(c => getDamType(c) === 'upper')
 
   const renderItem = (c) => {
@@ -90,22 +89,18 @@ export default function Sidebar({
       </div>
 
       <div style={{ padding: mobile ? '8px 14px 4px' : '8px 18px 6px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-sec)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>후보지 목록</div>
-        <div style={{ fontSize: 11, color: 'var(--text-pri)', opacity: 0.6, marginTop: 2 }}>총 {items.length}개 · 탭하여 선택</div>
+        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-sec)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>상부댐 목록</div>
+        <div style={{ fontSize: 11, color: 'var(--text-pri)', opacity: 0.6, marginTop: 2 }}>상부댐 {upperItems.length}개 · 탭하여 선택</div>
       </div>
 
       <div style={{ overflow: 'auto', flex: 1 }}>
-        {lowerItems.length > 0 && (<>
-          <div style={{ padding: '8px 16px 3px', fontSize: 9, color: '#f0a500', fontFamily: 'var(--font-mono)',
-            background: 'rgba(240,165,0,0.06)', borderTop: '1px solid var(--border)' }}>▼ 하부댐 (저수) {lowerItems.length}개</div>
-          {lowerItems.map(renderItem)}
-        </>)}
+        {/* 하부댐은 하단 FlightBar 버튼으로 접근합니다. 여기는 상부댐만. */}
         {upperItems.length > 0 && (<>
           <div style={{ padding: '8px 16px 3px', fontSize: 9, color: '#00aaff', fontFamily: 'var(--font-mono)',
             background: 'rgba(0,170,255,0.06)', borderTop: '1px solid var(--border)' }}>▼ 상부댐 (양수) {upperItems.length}개</div>
           {upperItems.map(renderItem)}
         </>)}
-        {lowerItems.length === 0 && upperItems.length === 0 && items.length > 0 && (<>
+        {upperItems.length === 0 && items.length > 0 && (<>
           <div style={{ padding: '8px 16px 3px', fontSize: 9, color: 'var(--text-sec)',
             fontFamily: 'var(--font-mono)', borderTop: '1px solid var(--border)' }}>Abra 유역</div>
           {items.map(renderItem)}

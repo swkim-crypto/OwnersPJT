@@ -83,16 +83,22 @@ export function orientationOf(view) {
   }
 }
 
-/** 애니메이션 이동 */
-export function flyToFloodView(viewer, view, { duration = 2.0, onComplete } = {}) {
+/**
+ * 애니메이션 이동.
+ * duration 을 null/undefined 로 주면 Cesium 이 이동거리에 맞춰 시간을 정합니다.
+ * 상부댐(수백 m)과 하부댐(수 km)의 이동거리가 크게 달라서, 고정 시간보다
+ * 자동 계산 쪽이 훨씬 자연스럽습니다.
+ */
+export function flyToFloodView(viewer, view, { duration = null, onComplete } = {}) {
   if (!viewer || viewer.isDestroyed?.() || !view) return
   viewer.camera.cancelFlight?.()
-  viewer.camera.flyTo({
+  const opt = {
     destination: destinationOf(view),
     orientation: orientationOf(view),
-    duration,
     complete: onComplete,
-  })
+  }
+  if (duration != null) opt.duration = duration
+  viewer.camera.flyTo(opt)
 }
 
 /** 즉시 이동 (창 리사이즈 재프레이밍용) */

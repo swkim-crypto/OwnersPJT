@@ -19,11 +19,12 @@ export default function FlightBar({
   river, derived, highlights, dams, fl, ui, ctrl,
   selectedId, onDamJump, currentEl,
   flood, heightM, onHeightChange,      // ← 2단계 추가 (없어도 동작)
+  damButtons,                          // ← 버튼으로 노출할 댐. 기본은 하부댐만
 }) {
   if (!river || !derived) return null
 
-  const lower = dams.filter(d => d.type === 'lower')
-  const upper = dams.filter(d => d.type === 'upper')
+  // 상부댐은 좌측 사이드바에서 고릅니다. 하단 버튼은 하부댐만.
+  const btnDams = damButtons ?? dams.filter(d => d.type === 'lower')
 
   const damTitle = (dm) => {
     const rec = FLOOD_POLYGONS[dm.id]
@@ -94,10 +95,8 @@ export default function FlightBar({
         </div>
 
         <div className="fb-grp fb-dams">
-          <span className="fb-lbl">하부</span>
-          {lower.map(dm => <DamBtn key={dm.id} dm={dm} />)}
-          <span className="fb-lbl" style={{ marginLeft: 6 }}>상부</span>
-          {upper.map(dm => <DamBtn key={dm.id} dm={dm} />)}
+          <span className="fb-lbl">하부댐</span>
+          {btnDams.map(dm => <DamBtn key={dm.id} dm={dm} />)}
         </div>
 
         <div className="fb-readout mono">
