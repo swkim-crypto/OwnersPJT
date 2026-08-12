@@ -58,6 +58,7 @@ export default function App() {
     fraction: 1 / 3,
     pitchDeg: -89.5,
     mode: 'broadside',
+    elevBoost: 2.0,    // 상부댐은 낙차 × 2 만큼 더 높이 — 규모 차이가 보이도록
     fillSeconds: 5,
     flyDuration: null,
   })
@@ -155,7 +156,7 @@ export default function App() {
       const c1 = f.chain
       prevChain.current = c1
       if (c0 == null) return
-      for (const dm of LOWER_DAMS) {
+      for (const dm of RIVER_DAMS) {          // 상·하부 모두
         if (armedRef.current.has(dm.id)) continue
         if ((c0 - dm.d) * (c1 - dm.d) <= 0) {   // 구간이 댐 측점을 가로질렀다
           armedRef.current.add(dm.id)
@@ -166,6 +167,22 @@ export default function App() {
     }, 80)
     return () => clearInterval(t)
   }, [fl, handleDamJump])
+
+  /**
+   * 재생 시작 시점의 측점에 걸쳐 있는 댐을 미리 armed 로 표시.
+   *
+   * handleDamJump 가 ctrl.seek(dm.d) 로 측점을 댐에 정확히 맞춰 놓기 때문에,
+   * 재생을 누르면 c0 === dm.d 가 되어 (c0-d)*(c1-d) === 0 → 곧바로 재발동합니다.
+   * 그래서 그 댐에서 제자리를 맴돌았습니다. 출발 지점의 댐은 건너뜁니다.
+   */
+  const armAtCurrent = useCallback(() => {
+    const c = fl.current.chain
+    armedRef.current.clear()
+    for (const dm of RIVER_DAMS) {
+      if (Math.abs(c - dm.d) <= 5) armedRef.current.add(dm.id)
+    }
+    prevChain.current = c
+  }, [fl])
 
   // ── 재생 버튼 래핑 ────────────────────────────
   //  재생을 시작하면 댐 그래픽·수면을 걷어내고 비행 모드로 돌아갑니다.
@@ -178,12 +195,11 @@ export default function App() {
         flood.clear()
         setSelected(null)
         setSimResult(null)
-        armedRef.current.clear()
-        prevChain.current = fl.current.chain
+        armAtCurrent()
       }
       ctrl.play()
     },
-  }), [ctrl, fl, flood])
+  }), [ctrl, fl, flood, armAtCurrent])
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>

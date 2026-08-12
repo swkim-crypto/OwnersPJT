@@ -46,6 +46,7 @@ export function useFlood({
   fraction = 1 / 3,
   pitchDeg = -38,
   mode = 'auto',
+  elevBoost = 1.0,      // 상부댐 상대고도 보정 배율 (낙차 × 이 값만큼 더 높이)
   fillSeconds = 8,
   flyDuration = null,   // null = Cesium 자동(이동거리 비례)
   smooth = false,
@@ -69,8 +70,8 @@ export function useFlood({
   const rafRef = useRef(null)
   const lastT = useRef(null)
 
-  const optRef = useRef({ fraction, pitchDeg, mode, fillSeconds, flyDuration, smooth })
-  optRef.current = { fraction, pitchDeg, mode, fillSeconds, flyDuration, smooth }
+  const optRef = useRef({ fraction, pitchDeg, mode, elevBoost, fillSeconds, flyDuration, smooth })
+  optRef.current = { fraction, pitchDeg, mode, elevBoost, fillSeconds, flyDuration, smooth }
 
   const [ui, setUi] = useState(EMPTY_UI)
 
@@ -251,6 +252,7 @@ export function useFlood({
       fraction: optRef.current.fraction,
       pitchDeg: optRef.current.pitchDeg,
       mode: optRef.current.mode,
+      elevBoost: optRef.current.elevBoost,
     })
 
     clearEnts()
@@ -331,6 +333,7 @@ export function useFlood({
       fraction: optRef.current.fraction,
       pitchDeg: optRef.current.pitchDeg,
       mode: optRef.current.mode,
+      elevBoost: optRef.current.elevBoost,
     })
     s.view = view
     if (animate) flyToFloodView(viewer, view, { duration: 1.0 })

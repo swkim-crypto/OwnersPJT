@@ -123,6 +123,10 @@ export function floodExtent(rings, bbox, dam) {
  *                                 auto = 두 모드를 다 풀어보고 더 가까이 붙는 쪽,
  *                                 즉 화면에 더 크게 잡히는 쪽을 고릅니다.
  * @param {number} [o.aimBias]     0=수몰면 중심을 겨냥, 1=댐을 겨냥 (기본 0.2)
+ * @param {number} [o.rangeBoost]  거리에 더할 값(m). 상부댐 상대고도 보정용.
+ *                                 상·하부를 똑같이 화면 1/3 로 맞추면 둘이 같은
+ *                                 크기로 보여 규모 차이가 사라집니다. 이 값만큼
+ *                                 더 높이 올라가 상부댐이 작게 보이도록 합니다.
  * @param {number} [o.padding]     여유 배율
  * @param {number} [o.minRange]    최소 거리 — 근접 시 지형 클리핑 방지
  * @param {number} [o.maxRange]
@@ -143,6 +147,7 @@ export function computeFloodView(o) {
     pitchDeg = -38,
     mode = 'auto',
     aimBias = 0.2,
+    rangeBoost = 0,
     padding = 1.0,
     minRange = 300,
     maxRange = 60000,
@@ -168,7 +173,7 @@ export function computeFloodView(o) {
     const hY = ((broad ? ext.acrossM : ext.alongM) * sinP + damHeight * cosP) / 2
     const Dx = hX / (fraction * tanX)
     const Dy = hY / (fraction * tanY)
-    const raw = Math.max(Dx, Dy) * padding
+    const raw = Math.max(Dx, Dy) * padding + Math.max(0, rangeBoost)
     return { m, headingDeg, hX, hY, raw, limitedBy: Dy >= Dx ? 'y' : 'x' }
   }
 
