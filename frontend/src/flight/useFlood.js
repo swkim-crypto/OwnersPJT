@@ -6,10 +6,15 @@
 //    세방히앙 원본은 sampleTerrainMostDetailed 로 Cesium World Terrain 에서
 //    표고를 뽑아 저수량을 냈는데, 그걸 가져오면 "앱 = 엑셀"이 깨집니다.
 //
-//  ── 여러 저수지 동시 담수 ────────────────────────────
+//  ── 여러 저수지 순차 담수 ────────────────────────────
 //  상부댐을 고르면 연결된 하부댐도 같이 채웁니다(양수 페어).
-//  진행률 t(0~1)를 공통으로 쓰고 각 저수지가 자기 하상→만수위 구간을
-//  t 비율만큼 채웁니다. 그래서 둘이 같이 시작해 같이 찹니다.
+//  순서는 **하부 먼저, 그다음 상부**. 하천에서 받은 물을 하부에 모으고
+//  그것을 상부로 퍼올린다는 양수발전의 순서 그대로입니다.
+//
+//  공통 진행률 t(0~1)를 저수지 수만큼 구간으로 나눠 각자 자기 구간에서
+//  하상→만수위를 채웁니다. 자기 차례 전에는 하상(=알파 0)이라 보이지 않습니다.
+//  전체 소요는 fillSeconds × 저수지 수 (페어면 2배).
+//  방류(draining)는 t 가 거꾸로 흐르므로 상부 → 하부 순서가 됩니다.
 //
 //  ── 왜 수면 높이를 CallbackProperty 로 올리지 않는가 ──
 //  Cesium GeometryUpdater 는 height 가 시간가변이면 DynamicGeometryUpdater 로
@@ -35,7 +40,7 @@ const EDGE_COLOR = Cesium.Color.fromCssColorString('#3fe3df').withAlpha(0.95)
 const FSL_COLOR = Cesium.Color.fromCssColorString('#f0a500').withAlpha(0.9)
 
 const EMPTY_UI = {
-  damId: null, pairIds: [], H: 0, fsl: 0, bed: 0,
+  damId: null, pairIds: [], H: 0, fsl: 0, bed: 0, activeLabel: null,
   phase: 'idle',        // idle | filling | full | draining
   level: 0, pct: 0,
   stats: null,
@@ -51,7 +56,8 @@ export function useFlood({
   mode = 'auto',
   elevBoost = 1.0,      // 상부댐 상대고도 보정 배율 (낙차 × 이 값만큼 더 높이)
   upperScale = 1.5,     // 상부댐 최종 거리 배율
-  fillSeconds = 8,
+  fillSeconds = 8,      // 저수지 1개당 소요(초)
+  sequential = true,    // 페어일 때 하부 → 상부 순차. false 면 동시
   flyDuration = null,   // null = Cesium 자동(이동거리 비례)
   smooth = false,
 } = {}) {
@@ -72,15 +78,24 @@ export function useFlood({
 
   const optRef = useRef({})
   optRef.current = {
-    fraction, pitchDeg, mode, elevBoost, upperScale, fillSeconds, flyDuration, smooth,
+    fraction, pitchDeg, mode, elevBoost, upperScale, fillSeconds, sequential,
+    flyDuration, smooth,
   }
 
   const [ui, setUi] = useState(EMPTY_UI)
 
+  /** 저수지 i 의 자기 구간 진행률 0~1 */
+  const localT = (i) => {
+    const r = st.current.res[i]
+    if (!r) return 0
+    const span = Math.max(1e-6, r.t1 - r.t0)
+    return Math.min(1, Math.max(0, (st.current.t - r.t0) / span))
+  }
+
   const levelOf = (i) => {
     const r = st.current.res[i]
     if (!r) return 0
-    return r.bed + st.current.t * (r.fsl - r.bed)
+    return r.bed + localT(i) * (r.fsl - r.bed)
   }
 
   // ── 크로스페이드 알파 ────────────────────────────
@@ -178,12 +193,21 @@ export function useFlood({
   // ── UI 미러 (8 Hz) ────────────────────────────────
   const sync = useCallback(() => {
     const s = st.current
-    const p = s.res[0]
+    // 지금 차오르고 있는 저수지를 readout 에 (없으면 마지막 것)
+    let ai = 0
+    for (let i = 0; i < s.res.length; i++) {
+      const r = s.res[i]
+      if (s.t >= r.t0 && s.t <= r.t1) { ai = i; break }
+      if (s.t > r.t1) ai = i
+    }
+    const p = s.res[ai]
+    const lt = p ? Math.min(1, Math.max(0, (s.t - p.t0) / Math.max(1e-6, p.t1 - p.t0))) : 0
     setUi({
       damId: s.damId, pairIds: s.pairIds, H: s.H,
+      activeLabel: p?.rec?.label ?? null,
       fsl: p?.fsl ?? 0, bed: p?.bed ?? 0,
       phase: s.phase,
-      level: p ? p.bed + s.t * (p.fsl - p.bed) : 0,
+      level: p ? p.bed + lt * (p.fsl - p.bed) : 0,
       pct: s.t,
       stats: s.stats || null,
       pairStats: s.pairStats || [],
@@ -205,7 +229,8 @@ export function useFlood({
       const s = st.current
 
       if ((s.phase === 'filling' || s.phase === 'draining') && dt > 0 && s.res.length) {
-        const rate = (1 / Math.max(0.5, optRef.current.fillSeconds)) * s.speed
+        const total = Math.max(0.5, optRef.current.fillSeconds) * s.res.length
+        const rate = (1 / total) * s.speed
         s.t += (s.phase === 'filling' ? 1 : -1) * rate * dt
 
         if (s.t >= 1) { s.t = 1; s.phase = 'full'; sync() }
@@ -213,7 +238,8 @@ export function useFlood({
 
         for (let i = 0; i < s.res.length; i++) {
           const r = s.res[i]
-          const lv = r.bed + s.t * (r.fsl - r.bed)
+          const u = Math.min(1, Math.max(0, (s.t - r.t0) / Math.max(1e-6, r.t1 - r.t0)))
+          const lv = r.bed + u * (r.fsl - r.bed)
           let k = -1
           for (let j = 0; j < r.levels.length; j++) if (r.levels[j] <= lv) k = j
           if (k !== r.stepIdx) setStep(i, k)
@@ -244,6 +270,7 @@ export function useFlood({
     return {
       id, rec, H: Hs, bed: rec.bed, fsl: target.fsl,
       levels, slices, stepIdx: -2, slice: target,
+      t0: 0, t1: 1,          // focus 에서 순서에 따라 다시 배정
     }
   }
 
@@ -302,6 +329,19 @@ export function useFlood({
       id: r.id, label: r.rec.label,
       area_km2: r.slice.area_km2, volume_mm3: r.slice.volume_mm3,
     }))
+
+    // 담수 구간 배정 — 하부 먼저, 그다음 상부.
+    //  sequential:false 면 모두 [0,1] 로 두어 동시에 찹니다.
+    const order = res.map((r, i) => i).sort((a, b) => {
+      const la = res[a].rec.damType === 'lower' ? 0 : 1
+      const lb = res[b].rec.damType === 'lower' ? 0 : 1
+      return la - lb
+    })
+    const seq = optRef.current.sequential && res.length > 1
+    order.forEach((idx, k) => {
+      res[idx].t0 = seq ? k / res.length : 0
+      res[idx].t1 = seq ? (k + 1) / res.length : 1
+    })
 
     entsRef.current = res.map(() => ({ low: [], high: [], edge: null, fsl: null }))
     res.forEach((r, i) => {

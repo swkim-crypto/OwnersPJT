@@ -58,9 +58,11 @@ export default function FloodBar({ flood, heightM, onHeightChange }) {
       </button>
 
       {/* 수위 게이지 */}
-      <div className="fd-gauge" title={`EL ${fmt(ui.level, 1)} m / 만수위 ${fmt(ui.fsl, 1)} m`}>
+      <div className="fd-gauge"
+           title={`${ui.activeLabel ?? ''} EL ${fmt(ui.level, 1)} m / 만수위 ${fmt(ui.fsl, 1)} m`}>
         <div className="fd-gauge-fill" style={{ width: `${(ui.pct * 100).toFixed(1)}%` }} />
         <span className="fd-gauge-tx mono">
+          {ui.activeLabel ? `${ui.activeLabel.replace('CBC', '')} ` : ''}
           EL {fmt(ui.level, 0)} / {fmt(ui.fsl, 0)} m
         </span>
       </div>

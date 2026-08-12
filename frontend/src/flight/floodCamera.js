@@ -25,6 +25,61 @@ export function viewerFovy(viewer) {
   return toFovy(Math.PI / 3, aspect)
 }
 
+
+/**
+ * 하단 FlightBar 가 캔버스를 덮는 높이(px).
+ *
+ *  FlightBar 는 position:absolute 로 Cesium 캔버스 **위에** 얹혀 있습니다.
+ *  즉 캔버스는 화면 전체 높이인데 아래쪽 240px 남짓은 보이지 않습니다.
+ *  프레이밍을 캔버스 전체 기준으로 하면 대상이 캔버스 한가운데,
+ *  즉 실제로는 바에 가려지는 쪽으로 치우쳐 잡힙니다.
+ */
+function bottomOverlayPx(viewer, opts) {
+  if (Number.isFinite(opts?.bottomOverlayPx)) return opts.bottomOverlayPx
+  if (typeof document === 'undefined') return 0
+  const el = document.querySelector('.fb-root')
+  return el?.offsetHeight ?? 0
+}
+
+/**
+ * 가려지는 영역을 뺀 "보이는 뷰포트" 기준으로 FOV·종횡비를 환산.
+ *  세로 FOV 는 보이는 높이만큼 좁히고, 가로는 그대로 유지되도록
+ *  종횡비를 같은 비율로 늘립니다 (tanX = tanY_full × aspect_full 불변).
+ */
+function visibleFrustum(viewer, opts) {
+  const c = viewer?.scene?.canvas ?? viewer?.canvas
+  const H = c?.clientHeight || 900
+  const ov = Math.min(Math.max(0, bottomOverlayPx(viewer, opts)), H * 0.6)
+  const visH = Math.max(50, H - ov)
+  const fovyFull = viewerFovy(viewer)
+  const tanYFull = Math.tan(fovyFull / 2)
+  const tanYVis = tanYFull * (visH / H)
+  return {
+    H, ov,
+    fovy: 2 * Math.atan(tanYVis),
+    aspect: viewerAspect(viewer) * (H / visH),
+    tanYFull,
+  }
+}
+
+/**
+ * 겨냥점을 화면 위쪽으로 올려, 가려지는 하단을 피해 보이는 영역 한가운데
+ * 오도록 합니다. 평면도(피치 -90 근처)에서 화면 위 = 시선 방향(heading).
+ */
+function liftAim(view, fr) {
+  if (!view || !fr.ov) return view
+  const p = Math.abs(view.pitchDeg) * Math.PI / 180
+  const sinP = Math.max(0.05, Math.sin(p))
+  const d = -(fr.ov / fr.H) * view.range * fr.tanYFull / sinP
+  const h = view.headingDeg * Math.PI / 180
+  const kx = 111320 * Math.cos(view.lat * Math.PI / 180)
+  return {
+    ...view,
+    lon: view.lon + (d * Math.sin(h)) / kx,
+    lat: view.lat + (d * Math.cos(h)) / 110540,
+  }
+}
+
 /** 댐 ID → RIVER_DAMS 레코드 */
 export function damOf(damId) {
   return RIVER_DAMS.find(d => d.id === damId) || null
@@ -58,14 +113,15 @@ export function planFloodView(viewer, damId, H, opts = {}) {
   // 상부댐만 한 번 더 멀리 — 주변 계곡이 함께 보여야 "퍼올린다"가 읽힙니다.
   const rangeScale = isUpper ? (opts.upperScale ?? 1.5) : 1.0
 
-  return computeFloodView({
+  const fr = visibleFrustum(viewer, opts)
+  return liftAim(computeFloodView({
     rings: slice.rings,
     bbox: slice.bbox,
     dam: dam ? { lon: dam.lon, lat: dam.lat } : null,
     fsl: slice.fsl,
     damHeight: slice.H,
-    aspect: viewerAspect(viewer),
-    fovy: viewerFovy(viewer),
+    aspect: fr.aspect,
+    fovy: fr.fovy,
     fraction: opts.fraction ?? 1 / 3,
     pitchDeg: opts.pitchDeg ?? -38,
     mode: opts.mode ?? 'auto',
@@ -75,7 +131,7 @@ export function planFloodView(viewer, damId, H, opts = {}) {
     padding: opts.padding ?? 1.0,
     minRange: opts.minRange ?? 300,
     maxRange: opts.maxRange ?? 60000,
-  })
+  }), fr)
 }
 
 /** view → 카메라 목적지 Cartesian3 (겨냥점 기준 ENU 오프셋을 지구좌표로) */
@@ -153,13 +209,14 @@ export function planPairView(viewer, ids, H, opts = {}) {
   const anchor = damOf(list[list.length - 1].id)
   const fsl = Math.max(...list.map(x => x.s.fsl))
 
-  return computeFloodView({
+  const fr = visibleFrustum(viewer, opts)
+  return liftAim(computeFloodView({
     rings, bbox,
     dam: anchor ? { lon: anchor.lon, lat: anchor.lat } : null,
     fsl,
     damHeight: list[0].s.H,
-    aspect: viewerAspect(viewer),
-    fovy: viewerFovy(viewer),
+    aspect: fr.aspect,
+    fovy: fr.fovy,
     fraction: opts.fraction ?? 1 / 3,
     pitchDeg: opts.pitchDeg ?? -38,
     mode: 'broadside',
@@ -169,5 +226,5 @@ export function planPairView(viewer, ids, H, opts = {}) {
     padding: opts.padding ?? 1.0,
     minRange: opts.minRange ?? 300,
     maxRange: opts.maxRange ?? 60000,
-  })
+  }), fr)
 }

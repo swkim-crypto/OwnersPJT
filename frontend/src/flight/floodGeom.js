@@ -55,6 +55,11 @@ export function collectPoints(rings, bbox) {
  *   axisDeg : 댐 → 수몰면 중심 방위각(북=0, 시계방향). 저수지가 뻗어나가는 방향.
  *   alongM  : 그 축 방향 총 길이
  *   acrossM : 축에 직교하는 방향 총 폭
+ *   midLon/midLat : 축 좌표계에서 잰 **범위의 한가운데**.
+ *     정점 평균(lon0/lat0)이 아닙니다. 링 정점 수가 많은 쪽으로 평균이
+ *     끌려가기 때문입니다. 상부(150점)+하부(800점) 페어에서는 평균이
+ *     하부 쪽으로 쏠려, 거리는 둘을 덮어도 카메라가 하부를 겨눠
+ *     상부가 화면 밖으로 밀려났습니다. 겨냥은 반드시 범위 중앙으로.
  */
 export function floodExtent(rings, bbox, dam) {
   const pts = collectPoints(rings, bbox)
@@ -93,9 +98,17 @@ export function floodExtent(rings, bbox, dam) {
     if (c < c0) c0 = c; if (c > c1) c1 = c
   }
 
+  // 범위 중앙 — 축(a)·직교(c) 방향의 중점을 다시 경위도로
+  const ma = (a0 + a1) / 2
+  const mc = (c0 + c1) / 2
+  const midX = ma * ax + mc * rx
+  const midY = ma * ay + mc * ry
+
   const [w, s, e, n] = bbox || [lon0, lat0, lon0, lat0]
   return {
     lon0, lat0,
+    midLon: lon0 + midX / kx,
+    midLat: lat0 + midY / ky,
     count: pts.length,
     alongM: a1 - a0,
     acrossM: c1 - c0,
@@ -190,10 +203,12 @@ export function computeFloodView(o) {
 
   const range = Math.min(maxRange, Math.max(minRange, pick.raw))
 
-  // 겨냥점을 댐 쪽으로 aimBias 만큼 당겨 댐이 프레임 안에 확실히 들어오게
+  // 겨냥점은 정점 평균이 아니라 범위 중앙(midLon/midLat).
+  // 거기서 aimBias 만큼 댐 쪽으로 당겨 댐이 프레임 안에 확실히 들어오게 합니다.
   const t = Math.min(1, Math.max(0, aimBias))
-  const lon = dam && Number.isFinite(dam.lon) ? ext.lon0 + (dam.lon - ext.lon0) * t : ext.lon0
-  const lat = dam && Number.isFinite(dam.lat) ? ext.lat0 + (dam.lat - ext.lat0) * t : ext.lat0
+  const bx = ext.midLon, by = ext.midLat
+  const lon = dam && Number.isFinite(dam.lon) ? bx + (dam.lon - bx) * t : bx
+  const lat = dam && Number.isFinite(dam.lat) ? by + (dam.lat - by) * t : by
 
   return {
     lon, lat,
