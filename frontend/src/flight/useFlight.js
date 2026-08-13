@@ -23,12 +23,12 @@ export const MODES = [
 export function useFlight({ viewer, river, derived, highlights, active }) {
   // 변경이 잦은 값 — ref
   const fl = useRef({
-    chain: 0, playing: false, dir: -1,
-    mode: 'std', speed: 1, agl: 900, exag: 1,
+    chain: 0, playing: false, dir: 1,
+    mode: 'std', speed: 5, agl: 900, exag: 1,
   })
   // UI 반영용 미러
   const [ui, setUi] = useState({
-    playing: false, dir: -1, mode: 'std', speed: 1, agl: 900, exag: 1, chainKm: 0,
+    playing: false, dir: -1, mode: 'std', speed: 5, agl: 1200, exag: 1, chainKm: 0,
   })
   const rafRef = useRef(null)
   const lastT  = useRef(null)
@@ -134,7 +134,7 @@ export function useFlight({ viewer, river, derived, highlights, active }) {
   // 하천이 바뀌면 상류 끝에서 시작
   useEffect(() => {
     if (!derived) return
-    fl.current.chain = derived.LEN
+    fl.current.chain = fl.current.dir > 0 ? 0 : derived.LEN
     sync()
   }, [derived, sync])
 
